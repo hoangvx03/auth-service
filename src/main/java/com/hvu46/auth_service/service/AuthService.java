@@ -12,6 +12,11 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,10 +29,26 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
 
     public LoginResponseDto login(@Valid LoginRequestDto request) {
+        log.info("Start check login for: {}", request.getUsername());
 
-        return new LoginResponseDto();
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        String token = jwtService.generateToken(userDetails);
+
+        return LoginResponseDto.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .expiresIn(jwtService.getExpirationTime())
+                .roles(userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                .build();
     }
 
     @Transactional

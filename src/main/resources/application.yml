@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: auth-service
+
+# database
+  datasource:
+    url: jdbc:postgresql://localhost:5432/auth-service
+    username: postgres
+    password: hoang2003
+    driver-class-name: org.postgresql.Driver
+
+# jpa
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+# security
+security:
+  jwt:
+    secret-key: 21098d8be5d4e7876e1f1b301721b53fb2f3ff453438546f8952e77467561055
+    expiration: 86400000
