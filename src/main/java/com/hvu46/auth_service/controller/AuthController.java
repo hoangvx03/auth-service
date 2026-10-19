@@ -2,8 +2,10 @@ package com.hvu46.auth_service.controller;
 
 import com.hvu46.auth_service.dto.request.LoginRequestDto;
 import com.hvu46.auth_service.dto.request.RegisterRequestDto;
+import com.hvu46.auth_service.dto.request.TokenRefreshRequest;
 import com.hvu46.auth_service.dto.response.LoginResponseDto;
 import com.hvu46.auth_service.service.AuthService;
+import com.hvu46.auth_service.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,5 +36,10 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("System error!");
         }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponseDto> refreshToken(@RequestBody TokenRefreshRequest request) {
+        return ResponseEntity.ok(authService.refreshAccessToken(request));
     }
 }
