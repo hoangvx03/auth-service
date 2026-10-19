@@ -2,12 +2,15 @@ package com.hvu46.auth_service.service;
 
 import com.hvu46.auth_service.constants.AuthConstants;
 import com.hvu46.auth_service.dto.request.LoginRequestDto;
+import com.hvu46.auth_service.dto.request.LogoutRequest;
 import com.hvu46.auth_service.dto.request.RegisterRequestDto;
 import com.hvu46.auth_service.dto.request.TokenRefreshRequest;
 import com.hvu46.auth_service.dto.response.LoginResponseDto;
 import com.hvu46.auth_service.entity.RefreshToken;
+import com.hvu46.auth_service.entity.RevokedToken;
 import com.hvu46.auth_service.entity.Role;
 import com.hvu46.auth_service.entity.User;
+import com.hvu46.auth_service.repository.RevokedTokenRepository;
 import com.hvu46.auth_service.repository.RoleRepository;
 import com.hvu46.auth_service.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -29,6 +32,7 @@ import java.util.Set;
 public class AuthService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
+    private final RevokedTokenRepository revokedTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -99,5 +103,16 @@ public class AuthService {
                             .build();
                 })
                 .orElseThrow(() -> new RuntimeException("Refresh Token not exist."));
+    }
+
+    @Transactional
+    public void logout(LogoutRequest request, String authHeader) {
+        refreshTokenService.deleteByToken(request.getRefreshToken());
+
+        if (authHeader != null && authHeader.contains("Bearer ")) {
+            String accessToken = authHeader.substring(7);
+            RevokedToken revokedToken = new RevokedToken(accessToken);
+            revokedTokenRepository.save(revokedToken);
+        }
     }
 }
