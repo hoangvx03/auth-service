@@ -1,18 +1,17 @@
 package com.hvu46.auth_service.controller;
 
 import com.hvu46.auth_service.dto.request.LoginRequestDto;
+import com.hvu46.auth_service.dto.request.LogoutRequest;
 import com.hvu46.auth_service.dto.request.RegisterRequestDto;
 import com.hvu46.auth_service.dto.request.TokenRefreshRequest;
 import com.hvu46.auth_service.dto.response.LoginResponseDto;
 import com.hvu46.auth_service.service.AuthService;
 import com.hvu46.auth_service.service.RefreshTokenService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController()
 @RequestMapping("/api/auth")
@@ -22,12 +21,12 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto request) {
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequestDto request) {
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequestDto request) {
         try {
             authService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED).body("Register successfully!");
@@ -39,7 +38,16 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<LoginResponseDto> refreshToken(@RequestBody TokenRefreshRequest request) {
+    public ResponseEntity<LoginResponseDto> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
         return ResponseEntity.ok(authService.refreshAccessToken(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(
+            @Valid @RequestBody LogoutRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+            ) {
+        authService.logout(request, authHeader);
+        return ResponseEntity.ok("Logout success");
     }
 }

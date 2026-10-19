@@ -1,5 +1,6 @@
 package com.hvu46.auth_service.config;
 
+import com.hvu46.auth_service.repository.RevokedTokenRepository;
 import com.hvu46.auth_service.service.CustomUserDetailsService;
 import com.hvu46.auth_service.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -25,6 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final RevokedTokenRepository revokedTokenRepository;
 
     @Override
     protected void doFilterInternal(
@@ -41,6 +43,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
+
+        if (revokedTokenRepository.existsById(jwt)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token being revoked (Logout)");
+            return;
+        }
 
         try {
 
