@@ -9,6 +9,7 @@ import java.util.List;
 @Builder
 public class LoginResponseDto {
     private String accessToken;
+    private String refreshToken;
     private String tokenType;
     private long expiresIn;
     private List<String> roles;

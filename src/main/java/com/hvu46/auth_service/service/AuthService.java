@@ -3,7 +3,9 @@ package com.hvu46.auth_service.service;
 import com.hvu46.auth_service.constants.AuthConstants;
 import com.hvu46.auth_service.dto.request.LoginRequestDto;
 import com.hvu46.auth_service.dto.request.RegisterRequestDto;
+import com.hvu46.auth_service.dto.request.TokenRefreshRequest;
 import com.hvu46.auth_service.dto.response.LoginResponseDto;
+import com.hvu46.auth_service.entity.RefreshToken;
 import com.hvu46.auth_service.entity.Role;
 import com.hvu46.auth_service.entity.User;
 import com.hvu46.auth_service.repository.RoleRepository;
@@ -16,7 +18,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public LoginResponseDto login(@Valid LoginRequestDto request) {
         log.info("Start check login for: {}", request.getUsername());
@@ -39,15 +41,18 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User user = (User) authentication.getPrincipal();
 
-        String token = jwtService.generateToken(userDetails);
+        String accessToken = jwtService.generateToken(user);
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         return LoginResponseDto.builder()
-                .accessToken(token)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
                 .tokenType("Bearer")
                 .expiresIn(jwtService.getExpirationTime())
-                .roles(userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                .roles(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
                 .build();
     }
 
@@ -75,5 +80,24 @@ public class AuthService {
 
         userRepository.save(newUser);
         log.info("Register success for: {}", request.getUsername());
+    }
+
+    public LoginResponseDto refreshAccessToken(TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtService.generateToken(user);
+                    return LoginResponseDto.builder()
+                            .accessToken(token)
+                            .refreshToken(requestRefreshToken)
+                            .tokenType("Bearer")
+                            .expiresIn(jwtService.getExpirationTime())
+                            .roles(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                            .build();
+                })
+                .orElseThrow(() -> new RuntimeException("Refresh Token not exist."));
     }
 }
